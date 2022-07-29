@@ -22,5 +22,16 @@ class MovieTableViewCell: UITableViewCell {
 
         // Configure the view for the selected state
     }
+    func configureCell(model:MovieViewModel){
+        if let url = URL(string: model.search.Poster ?? ""){
+            imageV.load(url: url) { (isSuccess) in
+                
+            };
+        }
+        
+         movieNameLbl.text = model.search.Title;
+        releaseYearLbl.text = "Released Year : \(model.search.Year ?? "")";
+        
+    }
 
 }

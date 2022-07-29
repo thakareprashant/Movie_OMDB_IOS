@@ -18,8 +18,11 @@ class ViewController: UIViewController {
     @IBOutlet weak var collectionView: UICollectionView!
     
     //Declaring model here
+   
+    var movieListViewModel:MovieListViewModel?
     var movieModel:MovieModel?
     var searchModel:[search]?
+    var searchViewModel:SearchMovieViewModel?
     
     //MARK:- View controller cycle
     override func viewWillAppear(_ animated: Bool) {
@@ -34,7 +37,17 @@ class ViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         searchBar.text = ""
         searchBar.resignFirstResponder()
-        fetchingSearchData()
+       
+        Globals.fetchingDataFromLocalStorage(model: [search]()) { result in
+            self.searchViewModel = SearchMovieViewModel(searchData: result?.reversed())
+            
+            DispatchQueue.main.async {
+                self.collectionView.reloadData()
+            }
+
+
+
+        }
         
         
     }
@@ -95,26 +108,11 @@ class ViewController: UIViewController {
                     
                     fatalError("decoding Error");
                 }
-                
+              
+                self.movieListViewModel = MovieListViewModel(MovieList: result?.Search ?? [])
                 DispatchQueue.main.async {
-                    self.movieModel = result;
-                    self.loader.stopAnimating()
-                    self.loader.isHidden = true
-                    if(self.movieModel?.Response == "False"){
-                        self.viewDemo.isHidden = false
-                        
-                        
-                    }
-                    else{
-                        self.viewDemo.isHidden = true
-                    }
-                    
                     self.tableView.reloadData()
-                    
                 }
-                
-                
-                
             }
             else{
                 DispatchQueue.main.async {
@@ -132,24 +130,17 @@ class ViewController: UIViewController {
 //MARK:- tableview methods
 extension ViewController:UITableViewDelegate,UITableViewDataSource{
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return movieModel?.Search?.count ?? 0;
+        return movieListViewModel?.numberOfRowsInSections(section) ?? 0;
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "cell", for: indexPath) as? MovieTableViewCell else{
             return UITableViewCell();
         }
-        guard let model = movieModel?.Search?[indexPath.row] else{
+        guard  let model = movieListViewModel?.movieAtIndex(indexPath.row) else{
             return cell
         }
-        if let url = URL(string: model.Poster ?? ""){
-            cell.imageV.load(url: url) { (isSuccess) in
-                
-            };
-        }
-        
-        cell.movieNameLbl.text = model.Title;
-        cell.releaseYearLbl.text = "Released Year : \(model.Year ?? "")";
+        cell.configureCell(model: model)
         return cell
     }
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
@@ -158,12 +149,13 @@ extension ViewController:UITableViewDelegate,UITableViewDataSource{
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         
-        saveData(index: indexPath.row)
+        movieListViewModel?.saveData(index: indexPath.row)
         
         guard  let vc = storyboard?.instantiateViewController(identifier: "MovieDetailViewController") as? MovieDetailViewController else{
             return
         }
-        vc.imdbId = movieModel?.Search?[indexPath.row].imdbID ?? ""
+        
+        vc.imdbId = movieListViewModel?.movieAtIndex(indexPath.row).search.imdbID ?? ""
         
         
         
@@ -177,7 +169,7 @@ extension ViewController:UISearchBarDelegate{
     
     func searchBarTextDidBeginEditing(_ searchBar: UISearchBar){
         
-        if searchModel != nil{
+        if searchViewModel?.searchData != nil{
             self.searchViewHeight.constant = 119
             hideBtn.isHidden = false
             UIView.animate(withDuration: 0.8) {
@@ -202,7 +194,7 @@ extension ViewController:UISearchBarDelegate{
 extension ViewController:UICollectionViewDelegate,UICollectionViewDataSource,UICollectionViewDelegateFlowLayout{
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         
-        return searchModel?.count ?? 0
+        return searchViewModel?.searchData?.count ?? 0
     }
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -213,7 +205,7 @@ extension ViewController:UICollectionViewDelegate,UICollectionViewDataSource,UIC
             
         }
         cell.loader.startAnimating()
-        if let url = URL(string: searchModel?[indexPath.row].Poster ?? ""){
+        if let url = URL(string:searchViewModel?.searchData?[indexPath.row].Poster ?? ""){
             cell.imageV.load(url: url) { (isSucesss) in
                 DispatchQueue.main.async {
                     cell.loader.stopAnimating()
@@ -230,7 +222,7 @@ extension ViewController:UICollectionViewDelegate,UICollectionViewDataSource,UIC
         guard  let vc = storyboard?.instantiateViewController(identifier: "MovieDetailViewController") as? MovieDetailViewController else{
             return
         }
-        vc.imdbId = searchModel?[indexPath.row].imdbID ?? ""
+        vc.imdbId = searchViewModel?.searchData?[indexPath.row].imdbID ?? ""
         vc.title = "Movie Details"
         
         // self.present(vc, animated: true, completion: nil)
@@ -253,74 +245,7 @@ extension ViewController:UICollectionViewDelegate,UICollectionViewDataSource,UIC
 }
 
 
-extension ViewController{
-    //Saving model to local storage
-    private func saveData(index:Int){
-        let userDefaults = UserDefaults.standard
-        if var searchSaveModel = try? userDefaults.getObject(forKey: "searchItems", castTo: [search].self) {
-            if let searchM = movieModel?.Search?[index]{
-                if searchSaveModel.count == 0 {
-                    searchSaveModel.append(searchM)
-                }
-                
-                else{
-                    if searchSaveModel.count >= 10{
-                        searchSaveModel.removeFirst()
-                    }
-                    var isFound = false;
-                    
-                    searchSaveModel.forEach { (obj) in
-                        if(obj.Title == searchM.Title){
-                            isFound = true;
-                            
-                        }
-                        
-                    }
-                    
-                    if(!isFound){
-                        searchSaveModel.append(searchM)
-                    }
-                    
-                }
-                
-            }
-            
-            do {
-                try userDefaults.setObject(searchSaveModel, forKey: "searchItems")
-            } catch {
-                print(error.localizedDescription)
-            }
-        }
-        else{
-            let searchM = (movieModel?.Search?[index])!;
-            var sea = [search]();
-            sea.append(searchM)
-            do {
-                try userDefaults.setObject(sea, forKey: "searchItems")
-            } catch {
-                print(error.localizedDescription)
-            }
-            
-        }
-    }
-    
-    //fetching offline data
-    private func fetchingSearchData(){
-        
-        
-        let userDefaults = UserDefaults.standard
-        do {
-            searchModel = try userDefaults.getObject(forKey: "searchItems", castTo: [search].self)
-            
-            searchModel?.reverse()
-            
-            collectionView.reloadData()
-        } catch {
-            print(error.localizedDescription)
-        }
-    }
-    
-}
+
 enum ResultError:String{
     case notFound = "Result not found";
     case alert = "Alert!!!"

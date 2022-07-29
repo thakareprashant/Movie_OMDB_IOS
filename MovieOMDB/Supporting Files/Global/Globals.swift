@@ -22,4 +22,20 @@ class Globals{
         alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
         viewcontroller.present(alert, animated: true, completion: nil)
     }
+    class func fetchingDataFromLocalStorage<T:Decodable>(model:T,completion:@escaping(T?)-> Void){
+       
+       
+       let userDefaults = UserDefaults.standard
+       do {
+           let result = try userDefaults.getObject(forKey: "searchItems", castTo: T.self)
+           
+        completion(result)
+          
+           
+           
+       } catch {
+          completion(nil)
+           print(error.localizedDescription)
+       }
+   }
 }

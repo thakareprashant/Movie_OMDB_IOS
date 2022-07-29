@@ -25,6 +25,7 @@ class MovieDetailViewController: UIViewController {
     @IBOutlet weak var reviewsCountLbl: UILabel!
     
     private var movieDetailModel:MovieDetail?
+    var movieDetailVM:MovieDetailViewModel?
     //Using this imdb variable we are getting imdb id from previus controller
     var imdbId = "";
     override func viewDidLoad() {
@@ -53,7 +54,7 @@ class MovieDetailViewController: UIViewController {
                 }
                 
                 DispatchQueue.main.async {
-                    self.movieDetailModel = result;
+                    self.movieDetailVM = MovieDetailViewModel(result!);
                     self.setData();
                     
                 }
@@ -66,24 +67,24 @@ class MovieDetailViewController: UIViewController {
     //MARK:- setting up all the data
     private func setData(){
     
-        if let urlImg = URL(string: self.movieDetailModel?.Poster ?? ""){
+        if let urlImg = URL(string:movieDetailVM?.movieDetail.Poster ?? ""){
             moviePosterImg.load(url: urlImg) { (isSuccess) in
                 
             };
         }
         
-        titleLbl.text = "\(movieDetailModel?.Title ?? "") (\(movieDetailModel?.Year ?? ""))"
-        titleDescLbl.text = movieDetailModel?.Rated
-        fullDesclbl.text = movieDetailModel?.Plot
-        likeCountLbl.text = movieDetailModel?.imdbVotes
-        reviewsCountLbl.text = movieDetailModel?.imdbRating
+        titleLbl.text = "\(movieDetailVM?.movieDetail.Title ?? "") (\(movieDetailVM?.movieDetail.Year ?? ""))"
+        titleDescLbl.text = movieDetailVM?.movieDetail.Rated
+        fullDesclbl.text = movieDetailVM?.movieDetail.Plot
+        likeCountLbl.text = movieDetailVM?.movieDetail.imdbVotes
+        reviewsCountLbl.text = movieDetailVM?.movieDetail.imdbRating
         //directorLbl.text = "Director : \(movieDetailModel?.Director ?? "")"
-        directorLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.director.rawValue, str2: movieDetailModel?.Director ?? "")
-        actorsLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.actor.rawValue, str2: movieDetailModel?.Actors ?? "")
-        languageLbl.attributedText = Globals.shared.getAttrString(str1:  MovieDetailEnum.Language.rawValue, str2: movieDetailModel?.Language ?? "")
-        releaseDateLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.releasedDate.rawValue, str2: movieDetailModel?.Released ?? "")
-        awardsLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.awards.rawValue, str2: movieDetailModel?.Awards ?? "")
-        countryLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.country.rawValue, str2: movieDetailModel?.Country ?? "")
+        directorLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.director.rawValue, str2: movieDetailVM?.movieDetail.Director ?? "")
+        actorsLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.actor.rawValue, str2: movieDetailVM?.movieDetail.Actors ?? "")
+        languageLbl.attributedText = Globals.shared.getAttrString(str1:  MovieDetailEnum.Language.rawValue, str2: movieDetailVM?.movieDetail.Language ?? "")
+        releaseDateLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.releasedDate.rawValue, str2: movieDetailVM?.movieDetail.Released ?? "")
+        awardsLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.awards.rawValue, str2: movieDetailVM?.movieDetail.Awards ?? "")
+        countryLbl.attributedText = Globals.shared.getAttrString(str1: MovieDetailEnum.country.rawValue, str2: movieDetailVM?.movieDetail.Country ?? "")
         
         
     }
